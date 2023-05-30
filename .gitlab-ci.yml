@@ -1,0 +1,32 @@
+variables:
+  AWS_REGION: ap-northeast-1
+  TF_CLI_CONFIG_FILE: $CI_PROJECT_DIR/.terraformrc
+  PHASE: BUILD
+
+before_script:
+  - apk add --no-cache curl jq python2 py-pip git
+  - pip install awscli
+  - aws configure set region ${AWS_REGION}
+  - echo -e "credentials \"$CI_SERVER_HOST\" {\n  token = \"$CI_JOB_TOKEN\"\n}" > $TF_CLI_CONFIG_FILE
+
+stages:
+  - plan
+
+Plan:
+  image:
+    name: hashicorp/terraform:1.1.6
+    entrypoint: [""]
+  stage: plan
+  artifacts:
+    paths:
+    - plan.bin
+    - app_config.zip
+    expire_in: 2 week
+  script:
+    - terraform --version
+    - terraform -chdir=./terraform init
+    - terraform -chdir=./terraform fmt -check=true
+    - terraform -chdir=./terraform validate 
+  only:
+    variables:
+      - $PHASE == "BUILD"
